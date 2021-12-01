@@ -1,17 +1,9 @@
-import requests
+from requests import get, post
+from .result import Result
+from .response import GlobeePaymentResponse
 
 
-class Request():
-    def __init__(self):
-        self.status_code = 0
-        self.ok = False
-        self.reason = ''
-        self.json = {}
-        self.text = ''
-        self.exception = None
-
-
-class GlobeeGetRequest(Request):
+class GlobeeGetRequest(Result):
     def __init__(self, api_key, endpoint):
         super().__init__()
 
@@ -20,29 +12,25 @@ class GlobeeGetRequest(Request):
             'X-AUTH-KEY': api_key,
         }
         
-        try:
-            response = requests.get(
-                endpoint,
-                headers=headers,
-                verify=True,
-                timeout=5
-            )
+        response = get(
+            endpoint,
+            headers=headers,
+            verify=True,
+            timeout=5
+        )
 
-            self.status_code = response.status_code
-            self.ok = response.ok
-            self.reason = response.reason
-            self.text = response.text
-            self.json = response.json
-        except Exception as e:
-            print(e)
-            self.exception = e
+        self.status_code = response.status_code
+        self.ok = response.ok
+        self.reason = response.reason
+        self.text = response.text
+        self.json = response.json()
 
     def __str__(self):
         return '%d: %s' % (self.status_code, self.reason)
 
 
-class GlobeePaymentRequest(Request):
-    REQUEST_STATUSES = {
+class GlobeePaymentRequest():
+    STATUSES = {
             'unpaid':      'All payment-requests start in the unpaid state, ready to receive payment.',
             'paid':        'The payment request has been paid, waiting for required number of confirmations.',
             'underpaid':   'Payment has been received, however, the user has paid less than the amount requested. '
@@ -58,7 +46,6 @@ class GlobeePaymentRequest(Request):
     }
 
     def __init__(self, api_key='', endpoint='', data=dict()):
-        super().__init__()
         self.response = None
         
         if not data:
@@ -70,24 +57,16 @@ class GlobeePaymentRequest(Request):
             'X-AUTH-KEY': api_key,
         }
 
-        try:
-            response = requests.post(
-                endpoint + 'payment-requesta',
-                headers=headers,
-                json=data,
-                verify=True,
-                timeout=5
-            )
+        response = post(
+            endpoint + 'payment-request',
+            headers=headers,
+            json=data,
+            verify=True,
+            timeout=5
+        )
 
-            self.status_code = response.status_code
-            self.ok = response.ok
-            self.reason = response.reason
-            self.text = response.text
-            self.json = response.json
-            # self.response = GlobeePaymentResponse  # TODO
-        except Exception as e:
-            print(e)
+        self.response = GlobeePaymentResponse(response)
 
     def __str__(self):
-        return '%d: %s' % (self.status_code, self.reason)
+        return '%s' % self.response
 
